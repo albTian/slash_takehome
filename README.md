@@ -10,18 +10,17 @@ Customers log in to Slash everyday to view their transactions and to make paymen
 2. The date picker must include some sort of calendar view (even if it isn't the main view), with some visual indication of the amount spent for each day. For example, you may choose to use a color gradient to represent the amount spent, with darker colors representing more spend. You may also (additionally or alternatively) choose to include the total spend for each day in the calendar view.
 3. It's important that the date picker is snappy and responsive. Good UX around loading states, interactions, and the overall experience is important.
 4. Emphasis on visual aesthetics and UX over code quality (this is a challenge is meant to be done in a few hours so we're not worried about you writing the cleanest code possible).
-5. An HTTP server that talks to a postgres database is provided for you to fetch transaction data. On the frontend, there is already a view with a list of transactions shown. There are hundreds of thousands of transactions, so it's expected that you keep in mind performance considerations when implementing the date picker. You may want to create new endpoints to fetch the data you need.
+5. An HTTP server that talks to a postgres database is provided for you to fetch transaction data. On the frontend, there is already a view with a list of transactions shown. There are hundreds of thousands of transactions, so it's expected that you keep in mind performance considerations when implementing the date picker. You may want to create new endpoints or modify the existing endpoint to fetch the data you need.
 
 
 ### Instructions
 
-1. Build and run the docker image by running `docker compose up` (or `npm run docker:up`)
-2. Install dependencies by running `npm install` (or bun / yarn if you prefer).
-3. Run `seed` command (`npm run seed` / `bun seed` / `yarn seed`) to seed the database with the initial set of transactions.
-3. Start the development server by running `npm run dev` and go to `localhost:3000`
+1. Build and run the docker image by running `docker compose up` (or `bun docker:up`)
+2. Install dependencies by running `bun install` (or `npm install` / `yarn install` if you prefer).
+3. Run `seed` command (`bun seed` / `npm run seed` / `yarn seed`) to seed the database with the initial set of transactions. If you are not using bun, you'll need to use tsx or something similar to run the script.
+4. Start the development server by running `bun dev` and go to `localhost:3000`
 
 Feel free to use any libraries and tools you'd like to complete the challenge.
-
 
 ### Time constraints
 
@@ -29,4 +28,4 @@ Spend as much time as you'd like on the challenge, but don't spend more than 8 h
 
 ### Your notes
 
-Please write and commit any notes while you're working on the challenge (or before submitting)! For example, explain are there things you would do in production, but don't have time to do now? What tradeoffs did you make WRT to time constraints? If you had 1 week to build this, what else would you consider?
+Please write and commit any notes while you're working on the challenge or after you're done. For example, are there things you would do in production, but don't have time to do now? What tradeoffs did you make WRT to time constraints? If you had 1 week to build this, what else would you consider?

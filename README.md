@@ -1,9 +1,11 @@
 # Slash frontend take home
 
-We're looking for strong frontend engineers who are obsessed with crafting great user experiences. We're looking for someone who both pays attention to the tiniest of details and can build beautiful and responsive UIs. If you are looking for more product-focused or backend/infra roles, check out our other challenges:
+We're looking for strong frontend engineers who are obsessed with crafting great user experiences. We're looking for someone who both pays attention to the tiniest of details and can build beautiful and responsive user interfaces. If you are looking for more product-focused or backend/infra roles, check out our other challenges:
 
 - [Slash backend take home](https://github.com/kevinbai0/slash-backend-take-home)
 - [Slash full stack take home](https://github.com/kevinbai0/slash-fullstack-take-home)
+
+This is *the* primary challenge we evaluate candidates with. We don't have multiple rounds of interviews and we don't do any other technical assessments. We want you to show us what you can do so give us your best work!
 
 Clone this repository and push it to a private repo you own. Once you're done, shoot us an email to [engineering@joinslash.com](mailto:engineering@joinslash.com) and share your private Github repository with [@kevinbai0](https://github.com/kevinbai0).
 
@@ -33,4 +35,4 @@ Spend as much time as you'd like on the challenge, but don't spend more than 8 h
 
 ### Your notes
 
-Please write and commit any notes while you're working on the challenge or after you're done. For example, are there things you would do in production, but don't have time to do now? What tradeoffs did you make with respect to time constraints? If you had 1 week to build this, what else would you consider? 
+Please write and commit any notes while you're working on the challenge or after you're done. For example, are there things you would do in production, but don't have time to do now? What tradeoffs did you make with respect to time constraints? If you had 1 week to build this, what else would you consider? More importantly than just the final output, we want to know and understand your thought process, how you choose to make tradeoffs, and your ability to think through edge cases critically.

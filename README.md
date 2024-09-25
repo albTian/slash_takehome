@@ -1,7 +1,11 @@
 # Slash frontend take home
 
-This is the frontend take home challenge for Slash. Clone this repository and push it to a private repo you own. Once you're done, shoot us an email to [engineering@joinslash.com](mailto:engineering@joinslash.com) and share your private Github repository with [@kevinbai0](https://github.com/kevinbai0).
+We're looking for strong frontend engineers who are obsessed with crafting great user experiences. We're looking for someone who both pays attention to the tiniest of details and can build beautiful and responsive UIs. If you are looking for more product-focused or backend/infra roles, check out our other challenges:
 
+- [Slash backend take home](https://github.com/kevinbai0/slash-backend-take-home)
+- [Slash full stack take home](https://github.com/kevinbai0/slash-fullstack-take-home)
+
+Clone this repository and push it to a private repo you own. Once you're done, shoot us an email to [engineering@joinslash.com](mailto:engineering@joinslash.com) and share your private Github repository with [@kevinbai0](https://github.com/kevinbai0).
 
 ### Overview
 

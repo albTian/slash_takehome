@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { DatePickerWithRange } from "./DateRangePicker";
+import { DateRange } from "react-day-picker";
+import { startOfDay, endOfDay } from "date-fns";
 
 interface Transaction {
   id: string;
@@ -21,6 +23,10 @@ export default function TransactionList() {
   const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfDay(new Date()),
+    to: endOfDay(new Date()),
+  });
   const loaderRef = useRef<HTMLDivElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
@@ -28,15 +34,28 @@ export default function TransactionList() {
     if (!hasMore || isLoading) return;
 
     setIsLoading(true);
-    const url = cursor
+    let url = cursor
       ? `/transaction?cursor=${encodeURIComponent(cursor)}`
       : "/transaction";
+
+    if (dateRange?.from) {
+      url += `${
+        url.includes("?") ? "&" : "?"
+      }from=${dateRange.from.toISOString()}`;
+    }
+    if (dateRange?.to) {
+      url += `&to=${dateRange.to.toISOString()}`;
+    }
 
     try {
       const response = await fetch(url);
       const data = await response.json();
 
-      setTransactions((prev) => [...prev, ...data.transactions]);
+      if (!cursor) {
+        setTransactions(data.transactions);
+      } else {
+        setTransactions((prev) => [...prev, ...data.transactions]);
+      }
       setCursor(data.nextCursor);
       setHasMore(!!data.nextCursor);
     } catch (error) {
@@ -44,7 +63,14 @@ export default function TransactionList() {
     } finally {
       setIsLoading(false);
     }
-  }, [cursor, hasMore, isLoading]);
+  }, [cursor, hasMore, isLoading, dateRange]);
+
+  useEffect(() => {
+    setCursor(null);
+    setHasMore(true);
+    setTransactions([]);
+    fetchTransactions();
+  }, [dateRange]);
 
   useEffect(() => {
     observerRef.current = new IntersectionObserver(
@@ -69,7 +95,12 @@ export default function TransactionList() {
 
   return (
     <div>
-      <DatePickerWithRange />
+      <DatePickerWithRange
+        date={dateRange}
+        onDateChange={(newDateRange) => {
+          setDateRange(newDateRange);
+        }}
+      />
       <table className="min-w-full bg-white border-gray-150 border-l border-r border-b">
         <thead className="bg-gray-100 sticky top-24 z-2">
           <tr className="border-gray-150 border-t">

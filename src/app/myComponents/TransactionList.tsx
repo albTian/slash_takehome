@@ -94,7 +94,7 @@ export default function TransactionList() {
   }, [fetchTransactions]);
 
   return (
-    <div>
+    <div className="space-y-4">
       <DatePickerWithRange
         date={dateRange}
         onDateChange={(newDateRange) => {

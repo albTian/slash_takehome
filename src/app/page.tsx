@@ -1,4 +1,4 @@
-import TransactionList from './components/TransactionList';
+import TransactionList from './myComponents/TransactionList';
 
 export default function Home() {
   return (

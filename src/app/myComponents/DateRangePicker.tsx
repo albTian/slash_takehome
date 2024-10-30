@@ -5,10 +5,11 @@ import * as React from "react";
 import { CalendarIcon } from "@radix-ui/react-icons";
 import { addDays, format } from "date-fns";
 import { DateRange } from "react-day-picker";
+import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar, DailyTotalsMap } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
@@ -27,6 +28,40 @@ export function DatePickerWithRange({
   onDateChange,
 }: DatePickerWithRangeProps) {
   const [month, setMonth] = React.useState<Date>(date?.from || new Date());
+  const [dailyTotals, setDailyTotals] = useState<DailyTotalsMap>({});
+
+  // Update useMemo to handle the new data structure
+  const fetchTransactionDays = React.useMemo(async () => {
+    const currentMonth = month.getMonth() + 1;
+    const currentYear = month.getFullYear();
+    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+    const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+
+    try {
+      const [currentMonthData, nextMonthData] = await Promise.all([
+        fetch(
+          `/transaction/daily-totals?month=${currentMonth}&year=${currentYear}`
+        ).then((res) => res.json()),
+        fetch(
+          `/transaction/daily-totals?month=${nextMonth}&year=${nextYear}`
+        ).then((res) => res.json()),
+      ]);
+
+      // Merge the two maps
+      return {
+        ...currentMonthData.dailyTotals,
+        ...nextMonthData.dailyTotals,
+      };
+    } catch (error) {
+      console.error("Error fetching transaction days:", error);
+      return {};
+    }
+  }, [month]);
+
+  // Handle the async result
+  useEffect(() => {
+    fetchTransactionDays.then(setDailyTotals);
+  }, [fetchTransactionDays]);
 
   // Add preset options
   const presets = [
@@ -134,6 +169,7 @@ export function DatePickerWithRange({
               selected={date}
               onSelect={handleSelect}
               numberOfMonths={2}
+              dailyTotals={dailyTotals}
             />
           </div>
         </PopoverContent>

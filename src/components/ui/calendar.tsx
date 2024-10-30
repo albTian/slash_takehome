@@ -2,19 +2,47 @@
 
 import * as React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
-import { DayPicker } from "react-day-picker";
+import { DayPicker, DayContentProps } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
-export type CalendarProps = React.ComponentProps<typeof DayPicker>;
+export type DailyTotalsMap = {
+  [date: string]: {
+    totalAmount: number;
+    transactionCount: number;
+  };
+};
+
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  dailyTotals?: DailyTotalsMap;
+};
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  dailyTotals = {},
   ...props
 }: CalendarProps) {
+  // Custom DayContent component
+  function CustomDayContent(props: DayContentProps) {
+    const { date, activeModifiers } = props;
+    const dateKey = date.toISOString().split("T")[0];
+
+    // Direct lookup instead of array search
+    const hasTransactions = Boolean(dailyTotals[dateKey]);
+
+    return (
+      <div className="relative w-full h-full flex items-center justify-center">
+        <div>{date.getDate()}</div>
+        {hasTransactions && (
+          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />
+        )}
+      </div>
+    );
+  }
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -52,7 +80,7 @@ function Calendar({
           "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
         day_today: "bg-accent text-accent-foreground",
         day_outside:
-          "day-outside text-muted-foreground opacity-50  aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
+          "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
         day_disabled: "text-muted-foreground opacity-50",
         day_range_middle:
           "aria-selected:bg-accent aria-selected:text-accent-foreground",
@@ -62,6 +90,7 @@ function Calendar({
       components={{
         IconLeft: ({ ...props }) => <ChevronLeftIcon className="h-4 w-4" />,
         IconRight: ({ ...props }) => <ChevronRightIcon className="h-4 w-4" />,
+        DayContent: CustomDayContent,
       }}
       {...props}
     />

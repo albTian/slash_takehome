@@ -4,6 +4,22 @@ import { endOfDay, startOfDay } from "date-fns";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { DateRange } from "react-day-picker";
 import { DatePickerWithRange } from "./DateRangePicker";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { cn } from "@/lib/utils";
 
 interface Transaction {
   id: string;
@@ -75,126 +91,118 @@ export default function TransactionList() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 h-[calc(100vh-200px)] flex flex-col">
       <DatePickerWithRange
         date={dateRange}
         onDateChange={(newDateRange) => {
           setDateRange(newDateRange);
         }}
       />
-      <table className="min-w-full bg-white border-gray-150 border-l border-r border-b">
-        <thead className="bg-gray-100 sticky top-24 z-2">
-          <tr className="border-gray-150 border-t">
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Merchant
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Date
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Amount
-            </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-              Status
-            </th>
-          </tr>
-        </thead>
-        <tbody className="bg-white divide-y divide-gray-200">
-          {filteredTransactions.length === 0 && (
-            <tr>
-              <td colSpan={4} className="px-6 py-4">
-                No transactions found
-              </td>
-            </tr>
-          )}
-          {filteredTransactions.map((transaction, index) => (
-            <tr
-              key={
-                transaction.id +
-                transaction.date +
-                transaction.merchantName +
-                transaction.amountCents +
-                index
-              }
-            >
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 h-10 w-10">
-                    <img
-                      className="h-10 w-10 rounded-full object-cover border"
-                      src={transaction.merchantImage}
-                      alt={transaction.merchantName}
-                    />
-                  </div>
-                  <div className="ml-4">
-                    <div className="text-sm font-medium text-gray-900">
-                      {transaction.merchantName}
-                    </div>
-                  </div>
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  {new Date(transaction.date).toLocaleString()}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-gray-900">
-                  ${(transaction.amountCents / 100).toFixed(2)}
-                </div>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap">
-                <span
-                  className={`px-4 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    transaction.status === "completed"
-                      ? "bg-green-100 text-green-800"
-                      : transaction.status === "pending"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {capitalizeFirstLetter(transaction.status)}
+
+      <div className="relative flex-1 flex flex-col">
+        <div className="flex flex-col">
+          <Pagination className="mt-auto">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  aria-disabled={page === 1 || isLoading}
+                  className={cn(page === 1 && "cursor-not-allowed opacity-50")}
+                  href={"#"}
+                />
+              </PaginationItem>
+
+              <PaginationItem>
+                <span className="flex h-9 items-center justify-center px-4 text-sm">
+                  Page {page} of {totalPages}
                 </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="flex justify-between items-center px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
-        <div className="flex justify-between w-full">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1 || isLoading}
-            className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-              page === 1 || isLoading
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-white text-gray-700 hover:bg-gray-50"
-            }`}
-          >
-            Previous
-          </button>
+              </PaginationItem>
 
-          <span className="text-sm text-gray-700">
-            Page {page} of {totalPages}
-          </span>
-
-          <button
-            onClick={() => setPage((p) => p + 1)}
-            disabled={!hasMore || isLoading}
-            className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
-              !hasMore || isLoading
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-white text-gray-700 hover:bg-gray-50"
-            }`}
-          >
-            Next
-          </button>
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setPage((p) => p + 1)}
+                  aria-disabled={!hasMore || isLoading}
+                  className={cn(!hasMore && "cursor-not-allowed opacity-50")}
+                  href={"#"}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+          <div className="border">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background z-10">
+                <TableRow>
+                  <TableHead>Merchant</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="overflow-auto">
+                {filteredTransactions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center">
+                      No transactions found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredTransactions.map((transaction, index) => (
+                    <TableRow
+                      key={
+                        transaction.id +
+                        transaction.date +
+                        transaction.merchantName +
+                        transaction.amountCents +
+                        index
+                      }
+                    >
+                      <TableCell>
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <img
+                              className="h-10 w-10 rounded-full object-cover border"
+                              src={transaction.merchantImage}
+                              alt={transaction.merchantName}
+                            />
+                          </div>
+                          <div className="ml-4">
+                            <div className="font-medium">
+                              {transaction.merchantName}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(transaction.date).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        ${(transaction.amountCents / 100).toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        <span
+                          className={`px-4 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            transaction.status === "completed"
+                              ? "bg-green-100 text-green-800"
+                              : transaction.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {capitalizeFirstLetter(transaction.status)}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
       </div>
 
-      {isLoading && (
+      {/* {isLoading && (
         <div className="text-center py-4">Loading transactions...</div>
-      )}
+      )} */}
     </div>
   );
 }

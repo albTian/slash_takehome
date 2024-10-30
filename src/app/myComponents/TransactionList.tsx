@@ -103,14 +103,12 @@ export default function TransactionList() {
         <div className="flex flex-col">
           <Pagination className="mt-auto">
             <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  aria-disabled={page === 1 || isLoading}
-                  className={cn(page === 1 && "cursor-not-allowed opacity-50")}
-                  href={"#"}
-                />
-              </PaginationItem>
+              <PaginationPrevious
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                aria-disabled={page === 1 || isLoading}
+                className={cn(page === 1 && "cursor-not-allowed opacity-50")}
+                href={"#"}
+              />
 
               <PaginationItem>
                 <span className="flex h-9 items-center justify-center px-4 text-sm">
@@ -118,14 +116,12 @@ export default function TransactionList() {
                 </span>
               </PaginationItem>
 
-              <PaginationItem>
-                <PaginationNext
-                  onClick={() => setPage((p) => p + 1)}
-                  aria-disabled={!hasMore || isLoading}
-                  className={cn(!hasMore && "cursor-not-allowed opacity-50")}
-                  href={"#"}
-                />
-              </PaginationItem>
+              <PaginationNext
+                onClick={() => setPage((p) => p + 1)}
+                aria-disabled={!hasMore || isLoading}
+                className={cn(!hasMore && "cursor-not-allowed opacity-50")}
+                href={"#"}
+              />
             </PaginationContent>
           </Pagination>
           <div className="border">

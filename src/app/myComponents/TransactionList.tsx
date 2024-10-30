@@ -83,13 +83,6 @@ export default function TransactionList() {
     fetchTransactions();
   }, [page, dateRange]);
 
-  const filteredTransactions = transactions.filter((transaction) => {
-    if (!dateRange?.from) return true;
-    if (!dateRange?.to) return true;
-    const transactionDate = new Date(transaction.date);
-    return transactionDate >= dateRange.from && transactionDate <= dateRange.to;
-  });
-
   return (
     <div className="space-y-4 h-[calc(100vh-200px)] flex flex-col">
       <DatePickerWithRange
@@ -135,14 +128,14 @@ export default function TransactionList() {
                 </TableRow>
               </TableHeader>
               <TableBody className="overflow-auto">
-                {filteredTransactions.length === 0 ? (
+                {transactions.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center">
                       No transactions found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredTransactions.map((transaction, index) => (
+                  transactions.map((transaction, index) => (
                     <TableRow
                       key={
                         transaction.id +

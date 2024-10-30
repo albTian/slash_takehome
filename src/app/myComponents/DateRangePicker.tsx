@@ -6,6 +6,7 @@ import { CalendarIcon } from "@radix-ui/react-icons";
 import { addDays, format } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -22,46 +23,59 @@ interface DatePickerWithRangeProps
   onDateChange: (date: DateRange | undefined) => void;
 }
 
+// Create a function for fetching daily totals
+const fetchDailyTotals = async (month: number, year: number) => {
+  const response = await fetch(
+    `/transaction/daily-totals?month=${month}&year=${year}`
+  );
+  const data = await response.json();
+  return data.dailyTotals;
+};
+
+// Custom hook to fetch daily totals for two months
+function useDailyTotals(currentDate: Date) {
+  const currentMonth = currentDate.getMonth() + 1;
+  const currentYear = currentDate.getFullYear();
+  const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
+  const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
+
+  const currentMonthQuery = useQuery({
+    queryKey: ["dailyTotals", currentMonth, currentYear],
+    queryFn: () => fetchDailyTotals(currentMonth, currentYear),
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+  });
+
+  const nextMonthQuery = useQuery({
+    queryKey: ["dailyTotals", nextMonth, nextYear],
+    queryFn: () => fetchDailyTotals(nextMonth, nextYear),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  return {
+    dailyTotals: {
+      ...(currentMonthQuery.data || {}),
+      ...(nextMonthQuery.data || {}),
+    },
+    isLoading: currentMonthQuery.isLoading || nextMonthQuery.isLoading,
+    isError: currentMonthQuery.isError || nextMonthQuery.isError,
+    error: currentMonthQuery.error || nextMonthQuery.error,
+  };
+}
+
 export function DatePickerWithRange({
   className,
   date,
   onDateChange,
 }: DatePickerWithRangeProps) {
   const [month, setMonth] = React.useState<Date>(date?.from || new Date());
-  const [dailyTotals, setDailyTotals] = useState<DailyTotalsMap>({});
+  const { dailyTotals, isLoading, isError, error } = useDailyTotals(month);
 
-  // Update useMemo to handle the new data structure
-  const fetchTransactionDays = React.useMemo(async () => {
-    const currentMonth = month.getMonth() + 1;
-    const currentYear = month.getFullYear();
-    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
-    const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
-
-    try {
-      const [currentMonthData, nextMonthData] = await Promise.all([
-        fetch(
-          `/transaction/daily-totals?month=${currentMonth}&year=${currentYear}`
-        ).then((res) => res.json()),
-        fetch(
-          `/transaction/daily-totals?month=${nextMonth}&year=${nextYear}`
-        ).then((res) => res.json()),
-      ]);
-
-      // Merge the two maps
-      return {
-        ...currentMonthData.dailyTotals,
-        ...nextMonthData.dailyTotals,
-      };
-    } catch (error) {
+  // If there's an error, log it but don't interrupt the UI
+  React.useEffect(() => {
+    if (isError) {
       console.error("Error fetching transaction days:", error);
-      return {};
     }
-  }, [month]);
-
-  // Handle the async result
-  useEffect(() => {
-    fetchTransactionDays.then(setDailyTotals);
-  }, [fetchTransactionDays]);
+  }, [isError, error]);
 
   // Add preset options
   const presets = [
@@ -170,6 +184,8 @@ export function DatePickerWithRange({
               onSelect={handleSelect}
               numberOfMonths={2}
               dailyTotals={dailyTotals}
+              // Optional: Show loading state in a non-intrusive way
+              className={cn(isLoading && "opacity-70")}
             />
           </div>
         </PopoverContent>

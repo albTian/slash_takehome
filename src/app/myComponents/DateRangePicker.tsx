@@ -6,7 +6,7 @@ import { CalendarIcon } from "@radix-ui/react-icons";
 import { addDays, format } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,50 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+const PRESET_OPTIONS = [
+  {
+    label: "Today",
+    dates: {
+      from: new Date(),
+      to: new Date(),
+    },
+  },
+  {
+    label: "Yesterday",
+    dates: {
+      from: addDays(new Date(), -1),
+      to: addDays(new Date(), -1),
+    },
+  },
+  {
+    label: "This Month",
+    dates: {
+      from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+      to: new Date(),
+    },
+  },
+  {
+    label: "Last Month",
+    dates: {
+      from: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
+      to: new Date(new Date().getFullYear(), new Date().getMonth(), 0),
+    },
+  },
+  {
+    label: "This Year",
+    dates: {
+      from: new Date(new Date().getFullYear(), 0, 1),
+      to: new Date(),
+    },
+  },
+  {
+    label: "Last Year",
+    dates: {
+      from: new Date(new Date().getFullYear() - 1, 0, 1),
+      to: new Date(new Date().getFullYear() - 1, 11, 31),
+    },
+  },
+];
 interface DatePickerWithRangeProps
   extends React.HTMLAttributes<HTMLDivElement> {
   date: DateRange | undefined;
@@ -32,17 +76,25 @@ const fetchDailyTotals = async (month: number, year: number) => {
   return data.dailyTotals;
 };
 
-// Custom hook to fetch daily totals for two months
+// Custom hook to fetch daily totals for two months and prefetch adjacent months
 function useDailyTotals(currentDate: Date) {
+  const queryClient = useQueryClient();
   const currentMonth = currentDate.getMonth() + 1;
   const currentYear = currentDate.getFullYear();
   const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
   const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
 
+  // Calculate previous and future months for prefetching
+  const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+  const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+  const futureMonth = nextMonth === 12 ? 1 : nextMonth + 1;
+  const futureYear = nextMonth === 12 ? nextYear + 1 : nextYear;
+
+  // Main queries for visible months
   const currentMonthQuery = useQuery({
     queryKey: ["dailyTotals", currentMonth, currentYear],
     queryFn: () => fetchDailyTotals(currentMonth, currentYear),
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 
   const nextMonthQuery = useQuery({
@@ -50,6 +102,31 @@ function useDailyTotals(currentDate: Date) {
     queryFn: () => fetchDailyTotals(nextMonth, nextYear),
     staleTime: 5 * 60 * 1000,
   });
+
+  // Prefetch adjacent months
+  React.useEffect(() => {
+    // Prefetch previous month
+    queryClient.prefetchQuery({
+      queryKey: ["dailyTotals", prevMonth, prevYear],
+      queryFn: () => fetchDailyTotals(prevMonth, prevYear),
+      staleTime: 5 * 60 * 1000,
+    });
+
+    // Prefetch future month
+    queryClient.prefetchQuery({
+      queryKey: ["dailyTotals", futureMonth, futureYear],
+      queryFn: () => fetchDailyTotals(futureMonth, futureYear),
+      staleTime: 5 * 60 * 1000,
+    });
+  }, [
+    currentMonth,
+    currentYear,
+    queryClient,
+    prevMonth,
+    prevYear,
+    futureMonth,
+    futureYear,
+  ]);
 
   return {
     dailyTotals: {
@@ -78,50 +155,6 @@ export function DatePickerWithRange({
   }, [isError, error]);
 
   // Add preset options
-  const presets = [
-    {
-      label: "Today",
-      dates: {
-        from: new Date(),
-        to: new Date(),
-      },
-    },
-    {
-      label: "Yesterday",
-      dates: {
-        from: addDays(new Date(), -1),
-        to: addDays(new Date(), -1),
-      },
-    },
-    {
-      label: "This Month",
-      dates: {
-        from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-        to: new Date(),
-      },
-    },
-    {
-      label: "Last Month",
-      dates: {
-        from: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
-        to: new Date(new Date().getFullYear(), new Date().getMonth(), 0),
-      },
-    },
-    {
-      label: "This Year",
-      dates: {
-        from: new Date(new Date().getFullYear(), 0, 1),
-        to: new Date(),
-      },
-    },
-    {
-      label: "Last Year",
-      dates: {
-        from: new Date(new Date().getFullYear() - 1, 0, 1),
-        to: new Date(new Date().getFullYear() - 1, 11, 31),
-      },
-    },
-  ];
 
   const handleSelect = (newDate: DateRange | undefined) => {
     onDateChange(newDate);
@@ -164,7 +197,7 @@ export function DatePickerWithRange({
         <PopoverContent className="w-auto p-0" align="start">
           <div className="flex">
             <div className="flex flex-col gap-1 p-3 border-r border-border">
-              {presets.map((preset) => (
+              {PRESET_OPTIONS.map((preset) => (
                 <Button
                   key={preset.label}
                   variant="ghost"

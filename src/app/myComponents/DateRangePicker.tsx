@@ -76,8 +76,16 @@ export function DatePickerWithRange({
 
   const handleSelect = (newDate: DateRange | undefined) => {
     onDateChange(newDate);
-    if (newDate?.from) {
-      setMonth(newDate.from);
+    if (!date) {
+      // If there was no previous date, use the new 'from' date
+      if (newDate?.from) setMonth(newDate.from);
+    } else if (newDate) {
+      // Compare old and new dates to determine which one changed
+      if (date.from?.getTime() !== newDate.from?.getTime()) {
+        setMonth(newDate.from!);
+      } else if (date.to?.getTime() !== newDate.to?.getTime()) {
+        setMonth(newDate.to!);
+      }
     }
   };
 

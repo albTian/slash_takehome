@@ -1,9 +1,9 @@
 "use client";
 
+import { endOfDay, startOfDay } from "date-fns";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { DatePickerWithRange } from "./DateRangePicker";
 import { DateRange } from "react-day-picker";
-import { startOfDay, endOfDay } from "date-fns";
+import { DatePickerWithRange } from "./DateRangePicker";
 
 interface Transaction {
   id: string;
@@ -20,78 +20,59 @@ function capitalizeFirstLetter(string: string) {
 
 export default function TransactionList() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [cursor, setCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: startOfDay(new Date()),
     to: endOfDay(new Date()),
   });
-  const loaderRef = useRef<HTMLDivElement>(null);
-  const observerRef = useRef<IntersectionObserver | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
 
   const fetchTransactions = useCallback(async () => {
-    if (!hasMore || isLoading) return;
-
+    if (isLoading) return;
     setIsLoading(true);
-    let url = cursor
-      ? `/transaction?cursor=${encodeURIComponent(cursor)}`
-      : "/transaction";
-
-    if (dateRange?.from) {
-      url += `${
-        url.includes("?") ? "&" : "?"
-      }from=${dateRange.from.toISOString()}`;
-    }
-    if (dateRange?.to) {
-      url += `&to=${dateRange.to.toISOString()}`;
-    }
 
     try {
-      const response = await fetch(url);
+      const params = new URLSearchParams({
+        page: page.toString(),
+      });
+
+      if (dateRange?.from) {
+        params.append("from", dateRange.from.toISOString());
+      }
+      if (dateRange?.to) {
+        params.append("to", dateRange.to.toISOString());
+      }
+
+      const response = await fetch(`/transaction?${params}`);
       const data = await response.json();
 
-      if (!cursor) {
-        setTransactions(data.transactions);
-      } else {
-        setTransactions((prev) => [...prev, ...data.transactions]);
-      }
-      setCursor(data.nextCursor);
-      setHasMore(!!data.nextCursor);
+      setTransactions(data.transactions);
+      setTotalPages(data.pagination.totalPages);
+      setHasMore(data.pagination.hasNextPage);
     } catch (error) {
       console.error("Error fetching transactions:", error);
     } finally {
       setIsLoading(false);
     }
-  }, [cursor, hasMore, isLoading, dateRange]);
+  }, [page, dateRange]);
 
   useEffect(() => {
-    setCursor(null);
-    setHasMore(true);
+    setPage(1);
     setTransactions([]);
-    fetchTransactions();
   }, [dateRange]);
 
   useEffect(() => {
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          fetchTransactions();
-        }
-      },
-      { threshold: 1.0 }
-    );
+    fetchTransactions();
+  }, [page, dateRange]);
 
-    if (loaderRef.current) {
-      observerRef.current.observe(loaderRef.current);
-    }
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [fetchTransactions]);
+  const filteredTransactions = transactions.filter((transaction) => {
+    if (!dateRange?.from) return true;
+    if (!dateRange?.to) return true;
+    const transactionDate = new Date(transaction.date);
+    return transactionDate >= dateRange.from && transactionDate <= dateRange.to;
+  });
 
   return (
     <div className="space-y-4">
@@ -119,8 +100,23 @@ export default function TransactionList() {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {transactions.map((transaction) => (
-            <tr key={transaction.id}>
+          {filteredTransactions.length === 0 && (
+            <tr>
+              <td colSpan={4} className="px-6 py-4">
+                No transactions found
+              </td>
+            </tr>
+          )}
+          {filteredTransactions.map((transaction, index) => (
+            <tr
+              key={
+                transaction.id +
+                transaction.date +
+                transaction.merchantName +
+                transaction.amountCents +
+                index
+              }
+            >
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex items-center">
                   <div className="flex-shrink-0 h-10 w-10">
@@ -164,10 +160,40 @@ export default function TransactionList() {
           ))}
         </tbody>
       </table>
-      {hasMore && (
-        <div ref={loaderRef} className="text-center py-4">
-          {isLoading ? "Loading more..." : "Scroll to load more"}
+      <div className="flex justify-between items-center px-4 py-3 bg-white border-t border-gray-200 sm:px-6">
+        <div className="flex justify-between w-full">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1 || isLoading}
+            className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+              page === 1 || isLoading
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            Previous
+          </button>
+
+          <span className="text-sm text-gray-700">
+            Page {page} of {totalPages}
+          </span>
+
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={!hasMore || isLoading}
+            className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md ${
+              !hasMore || isLoading
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            Next
+          </button>
         </div>
+      </div>
+
+      {isLoading && (
+        <div className="text-center py-4">Loading transactions...</div>
       )}
     </div>
   );

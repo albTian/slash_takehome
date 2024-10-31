@@ -97,7 +97,10 @@ export default function TransactionPage() {
 
   const [page, setPage] = useState(1);
   const lastTotalPages = useRef(1);
-  const [selectedMerchant, setSelectedMerchant] = useState<string>("");
+  const [selectedMerchant, setSelectedMerchant] = useState<string>(() => {
+    const merchantParam = searchParams.get("merchant") || "";
+    return merchantParam;
+  });
   const [inputAmountRange, setInputAmountRange] = useState<{
     min?: number;
     max?: number;
@@ -149,6 +152,19 @@ export default function TransactionPage() {
     [searchParams, router]
   );
 
+  const updateUrlWithMerchant = useCallback(
+    (merchant: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (merchant && merchant !== "all") {
+        params.set("merchant", merchant);
+      } else {
+        params.delete("merchant");
+      }
+      router.push(`?${params.toString()}`);
+    },
+    [searchParams, router]
+  );
+
   return (
     <div className="space-y-4 h-[calc(100vh-200px)] flex flex-col">
       <div className="flex flex-col md:flex-row gap-4">
@@ -165,7 +181,10 @@ export default function TransactionPage() {
           <Combobox
             options={merchantOptions}
             value={selectedMerchant}
-            setValue={setSelectedMerchant}
+            setValue={(newMerchant) => {
+              setSelectedMerchant(newMerchant);
+              updateUrlWithMerchant(newMerchant);
+            }}
           />
         </div>
         <div className="w-full sm:w-auto">

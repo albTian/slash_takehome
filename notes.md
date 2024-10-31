@@ -54,3 +54,9 @@ This would be in order of what I think would be important. 4 and 5 are very on t
 3. Improve filtering functionality. Multiple merchants, grouped merchants (like RocketMoney), status are all additional filters I'd add.
 4. Add a full calendar view. Like a full-page, google-calendar esque view. I'd only do this if it turns out people were really interested in day by day, week by week breakdowns. My hunch is that they aren't.
 5. Optimize for mobile. It works on mobile right now (the components are responsive) but it's certainly not optimized for mobile. I suspect that +95% of traffic to a page like this is from desktop, so this ranks quite low.
+
+## Looms
+If you prefer video format:
+
+Product overview: https://www.loom.com/share/920dd1480bff46788aa3048e36c716ed
+Technical dive: https://www.loom.com/share/6ef06f4bb0d34f3e934440a2d3cd3ab0

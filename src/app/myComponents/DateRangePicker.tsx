@@ -19,6 +19,13 @@ import {
 import { DateRange } from "react-day-picker";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -207,8 +214,34 @@ export function DatePickerWithRange({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0" align="start">
-          <div className="flex">
-            <div className="flex flex-col gap-1 p-3 border-r border-border">
+          <div className="flex flex-col md:flex-row">
+            {/* Mobile Select */}
+            <div className="block md:hidden p-3 border-b border-border">
+              <Select
+                onValueChange={(value) => {
+                  const preset = PRESET_OPTIONS.find(
+                    (option) => option.label === value
+                  );
+                  if (preset) {
+                    handlePresetClick(preset);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select range" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRESET_OPTIONS.map((preset) => (
+                    <SelectItem key={preset.label} value={preset.label}>
+                      {preset.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Desktop Buttons */}
+            <div className="hidden md:flex md:flex-col gap-1 p-3 border-r border-border">
               {PRESET_OPTIONS.map((preset) => (
                 <Button
                   key={preset.label}
@@ -220,6 +253,7 @@ export function DatePickerWithRange({
                 </Button>
               ))}
             </div>
+
             <Calendar
               initialFocus
               mode="range"
@@ -229,8 +263,7 @@ export function DatePickerWithRange({
               onSelect={handleSelect}
               numberOfMonths={2}
               dailyTotals={dailyTotals}
-              // Optional: Show loading state in a non-intrusive way
-              className={cn(isLoading && "opacity-70")}
+              className={cn(isLoading && "opacity-70", "w-full md:w-auto")}
             />
           </div>
         </PopoverContent>

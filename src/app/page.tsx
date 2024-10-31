@@ -1,6 +1,6 @@
 "use client";
 
-import TransactionList from "./myComponents/TransactionList";
+import TransactionList from "./myComponents/TransactionPage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Create a client

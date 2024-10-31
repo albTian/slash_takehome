@@ -1,16 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { DateRange } from "react-day-picker";
-import { DatePickerWithRange } from "./DateRangePicker";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table";
 import {
   Pagination,
   PaginationContent,
@@ -18,99 +7,20 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { cn } from "@/lib/utils";
-import { useEffect, useRef, useMemo, useCallback } from "react";
-import { endOfDay } from "date-fns";
-import { startOfDay } from "date-fns";
-import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Combobox } from "@/components/ui/combobox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { AmountRangePicker } from "./AmountRangePicker";
-
-interface Transaction {
-  id: string;
-  amountCents: number;
-  merchantName: string;
-  merchantImage: string;
-  date: string;
-  status: string;
-}
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Transaction } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 function capitalizeFirstLetter(string: string) {
   return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-// Move the fetch logic into a separate function
-const fetchTransactions = async ({
-  page,
-  dateRange,
-  selectedMerchant,
-  amountRange,
-}: {
-  page: number;
-  dateRange: DateRange | undefined;
-  selectedMerchant: string;
-  amountRange: { min?: number; max?: number };
-}) => {
-  const params = new URLSearchParams({
-    page: page.toString(),
-  });
-
-  if (dateRange?.from) {
-    params.append("from", dateRange.from.toISOString());
-  }
-  if (dateRange?.to) {
-    params.append("to", dateRange.to.toISOString());
-  }
-  if (selectedMerchant !== "all") {
-    params.append("merchant", selectedMerchant);
-  }
-  if (amountRange.min) {
-    params.append("minAmount", (amountRange.min * 100).toString());
-  }
-  if (amountRange.max) {
-    params.append("maxAmount", (amountRange.max * 100).toString());
-  }
-
-  const response = await fetch(`/transaction?${params}`);
-  if (!response.ok) {
-    throw new Error("Network response was not ok");
-  }
-  return response.json();
-};
-
-// Custom hook for transactions
-function useTransactions(
-  page: number,
-  dateRange: DateRange | undefined,
-  selectedMerchant: string,
-  amountRange: { min?: number; max?: number }
-) {
-  return useQuery<{
-    transactions: Transaction[];
-    allMerchants: string[];
-    pagination: {
-      totalPages: number;
-      hasNextPage: boolean;
-    };
-  }>({
-    queryKey: [
-      "transactions",
-      page,
-      dateRange?.from,
-      dateRange?.to,
-      selectedMerchant,
-      amountRange.min,
-      amountRange.max,
-    ],
-    queryFn: () =>
-      fetchTransactions({ page, dateRange, selectedMerchant, amountRange }),
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    retry: 2,
-  });
 }
 
 function TransactionRowSkeleton() {
@@ -159,7 +69,6 @@ interface TransactionTableProps {
   selectedMerchant: string;
 }
 
-// Handles displaying the transactions in a table based on the date range. This will handle the fetching using the custom hook.
 const TransactionTable = ({
   data,
   isLoading,
@@ -283,77 +192,4 @@ const TransactionTable = ({
   );
 };
 
-export default function TransactionPage() {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfDay(new Date()),
-    to: endOfDay(new Date()),
-  });
-
-  const [page, setPage] = useState(1);
-  const lastTotalPages = useRef(1);
-  const [selectedMerchant, setSelectedMerchant] = useState<string>("");
-  const [inputAmountRange, setInputAmountRange] = useState<{
-    min?: number;
-    max?: number;
-  }>({});
-
-  const { data, isLoading, isError, error } = useTransactions(
-    page,
-    dateRange,
-    selectedMerchant,
-    inputAmountRange
-  );
-
-  // Create merchant options using allMerchants from API
-  const merchantOptions = useMemo(
-    () => [
-      { value: "all", label: "All Merchants" },
-      ...(data?.allMerchants || []).map((merchant) => ({
-        value: merchant,
-        label: merchant,
-      })),
-    ],
-    [data?.allMerchants]
-  );
-
-  // Update lastTotalPages only when we get a valid value
-  if (data?.pagination.totalPages) {
-    lastTotalPages.current = data.pagination.totalPages;
-  }
-
-  useEffect(() => {
-    setPage(1);
-  }, [dateRange, selectedMerchant, inputAmountRange]);
-
-  return (
-    <div className="space-y-4 h-[calc(100vh-200px)] flex flex-col">
-      <div className="flex gap-4">
-        <DatePickerWithRange
-          date={dateRange}
-          onDateChange={(newDateRange) => {
-            setDateRange(newDateRange);
-          }}
-        />
-        <Combobox
-          options={merchantOptions}
-          value={selectedMerchant}
-          setValue={setSelectedMerchant}
-        />
-        <AmountRangePicker
-          value={inputAmountRange}
-          onChange={setInputAmountRange}
-        />
-      </div>
-      <TransactionTable
-        data={data}
-        isLoading={isLoading}
-        isError={isError}
-        error={error}
-        page={page}
-        setPage={setPage}
-        totalPages={lastTotalPages.current}
-        selectedMerchant={selectedMerchant}
-      />
-    </div>
-  );
-}
+export default TransactionTable;

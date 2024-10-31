@@ -11,7 +11,7 @@ import { AmountRangePicker } from "./AmountRangePicker";
 import { DatePickerWithRange } from "./DateRangePicker";
 import TransactionTable from "./TransactionTable";
 import { Button } from "@/components/ui/button";
-import { XIcon } from "lucide-react";
+import { XIcon, DownloadIcon } from "lucide-react";
 
 // Move the fetch logic into a separate function
 const fetchTransactions = async ({
@@ -50,6 +50,107 @@ const fetchTransactions = async ({
     throw new Error("Network response was not ok");
   }
   return response.json();
+};
+
+// Add new fetch function for exporting
+const fetchAllTransactions = async ({
+  dateRange,
+  selectedMerchant,
+  amountRange,
+}: {
+  dateRange: DateRange | undefined;
+  selectedMerchant: string;
+  amountRange: { min?: number; max?: number };
+}) => {
+  let allTransactions: Transaction[] = [];
+  let currentPage = 1;
+  let hasMore = true;
+
+  while (hasMore) {
+    const params = new URLSearchParams({
+      page: currentPage.toString(),
+    });
+
+    if (dateRange?.from) {
+      params.append("from", dateRange.from.toISOString());
+    }
+    if (dateRange?.to) {
+      params.append("to", dateRange.to.toISOString());
+    }
+    if (selectedMerchant !== "all") {
+      params.append("merchant", selectedMerchant);
+    }
+    if (amountRange.min) {
+      params.append("minAmount", (amountRange.min * 100).toString());
+    }
+    if (amountRange.max) {
+      params.append("maxAmount", (amountRange.max * 100).toString());
+    }
+
+    const response = await fetch(`/transaction?${params}`);
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+    const data = await response.json();
+    allTransactions = [...allTransactions, ...data.transactions];
+
+    hasMore = data.pagination.hasNextPage;
+    currentPage++;
+  }
+
+  return allTransactions;
+};
+
+// Update the export function to handle the fetching
+const exportTransactionsToCSV = async ({
+  dateRange,
+  selectedMerchant,
+  amountRange,
+}: {
+  dateRange: DateRange | undefined;
+  selectedMerchant: string;
+  amountRange: { min?: number; max?: number };
+}) => {
+  try {
+    const transactions = await fetchAllTransactions({
+      dateRange,
+      selectedMerchant,
+      amountRange,
+    });
+
+    // Define CSV headers
+    const headers = ["Date", "Merchant", "Amount", "Status"];
+
+    // Convert transactions to CSV rows
+    const csvRows = transactions.map((t) => [
+      new Date(t.date).toLocaleDateString(),
+      t.merchantName,
+      (t.amountCents / 100).toFixed(2),
+      t.status,
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(","),
+      ...csvRows.map((row) => row.join(",")),
+    ].join("\n");
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute(
+      "download",
+      `transactions-${new Date().toISOString().split("T")[0]}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  } catch (error) {
+    console.error("Error exporting transactions:", error);
+    // You might want to add some error handling UI here
+  }
 };
 
 // Custom hook for transactions
@@ -107,6 +208,7 @@ export default function TransactionPage() {
     min?: number;
     max?: number;
   }>({});
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data, isLoading, isError, error } = useTransactions(
     page,
@@ -191,6 +293,19 @@ export default function TransactionPage() {
     );
   }, [dateRange, selectedMerchant, inputAmountRange]);
 
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      await exportTransactionsToCSV({
+        dateRange,
+        selectedMerchant,
+        amountRange: inputAmountRange,
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="space-y-4 h-[calc(100vh-200px)] flex flex-col">
       <div className="flex flex-col md:flex-row gap-4">
@@ -219,12 +334,38 @@ export default function TransactionPage() {
             onChange={setInputAmountRange}
           />
         </div>
-        {hasActiveFilters && (
-          <Button variant="outline" onClick={resetFilters}>
-            <XIcon className="mr-2 h-4 w-4" />
-            Reset Filters
+        <div className="w-full sm:w-auto">
+          {hasActiveFilters && (
+            <Button
+              variant="outline"
+              className="font-semibold"
+              onClick={resetFilters}
+            >
+              <XIcon className="mr-2 h-4 w-4" />
+              Reset Filters
+            </Button>
+          )}
+        </div>
+        <div className="w-full sm:w-auto lg:ml-auto">
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            disabled={isLoading || isExporting}
+            className="font-semibold"
+          >
+            {isExporting ? (
+              <>
+                <span className="animate-spin mr-2">⏳</span>
+                Exporting...
+              </>
+            ) : (
+              <>
+                <DownloadIcon className="mr-2 h-4 w-4" />
+                Export CSV
+              </>
+            )}
           </Button>
-        )}
+        </div>
       </div>
       <TransactionTable
         data={data}

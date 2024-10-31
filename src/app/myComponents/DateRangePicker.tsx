@@ -28,8 +28,8 @@ const PRESET_OPTIONS = [
   {
     label: "Yesterday",
     dates: {
-      from: addDays(new Date(), -1),
-      to: addDays(new Date(), -1),
+      from: new Date(new Date().setHours(0, 0, 0, 0) - 24 * 60 * 60 * 1000),
+      to: new Date(new Date().setHours(23, 59, 59, 999) - 24 * 60 * 60 * 1000),
     },
   },
   {

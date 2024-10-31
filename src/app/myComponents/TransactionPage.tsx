@@ -10,6 +10,8 @@ import { DateRange } from "react-day-picker";
 import { AmountRangePicker } from "./AmountRangePicker";
 import { DatePickerWithRange } from "./DateRangePicker";
 import TransactionTable from "./TransactionTable";
+import { Button } from "@/components/ui/button";
+import { XIcon } from "lucide-react";
 
 // Move the fetch logic into a separate function
 const fetchTransactions = async ({
@@ -165,6 +167,30 @@ export default function TransactionPage() {
     [searchParams, router]
   );
 
+  const resetFilters = useCallback(() => {
+    // Reset all filters to default values
+    setDateRange(undefined);
+    setSelectedMerchant("");
+    setInputAmountRange({});
+    setPage(1);
+
+    // Update URL by removing all filter parameters
+    const params = new URLSearchParams();
+    router.push("?");
+  }, [router]);
+
+  const hasActiveFilters = useMemo(() => {
+    return (
+      selectedMerchant !== "" ||
+      inputAmountRange.min !== undefined ||
+      inputAmountRange.max !== undefined ||
+      (dateRange?.from &&
+        dateRange.from.getTime() !== startOfMonth(new Date()).getTime()) ||
+      (dateRange?.to &&
+        dateRange.to.getTime() !== endOfMonth(new Date()).getTime())
+    );
+  }, [dateRange, selectedMerchant, inputAmountRange]);
+
   return (
     <div className="space-y-4 h-[calc(100vh-200px)] flex flex-col">
       <div className="flex flex-col md:flex-row gap-4">
@@ -193,6 +219,12 @@ export default function TransactionPage() {
             onChange={setInputAmountRange}
           />
         </div>
+        {hasActiveFilters && (
+          <Button variant="outline" onClick={resetFilters}>
+            <XIcon className="mr-2 h-4 w-4" />
+            Reset Filters
+          </Button>
+        )}
       </div>
       <TransactionTable
         data={data}

@@ -2,7 +2,11 @@
 "use client";
 
 import * as React from "react";
-import { CalendarIcon } from "@radix-ui/react-icons";
+import {
+  CalendarIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "@radix-ui/react-icons";
 import {
   addDays,
   endOfDay,
@@ -103,7 +107,7 @@ function useDailyTotals(currentDate: Date) {
   const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
   const nextYear = currentMonth === 12 ? currentYear + 1 : currentYear;
 
-  // Calculate previous and future months for prefetching
+  // Calculate adjacent months and years for prefetching
   const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
   const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
   const futureMonth = nextMonth === 12 ? 1 : nextMonth + 1;
@@ -122,16 +126,38 @@ function useDailyTotals(currentDate: Date) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Prefetch adjacent months
+  // Enhanced prefetching to include adjacent years
   React.useEffect(() => {
-    // Prefetch previous month
+    // Previous year's months
+    queryClient.prefetchQuery({
+      queryKey: ["dailyTotals", currentMonth, currentYear - 1],
+      queryFn: () => fetchDailyTotals(currentMonth, currentYear - 1),
+      staleTime: 5 * 60 * 1000,
+    });
+    queryClient.prefetchQuery({
+      queryKey: ["dailyTotals", nextMonth, currentYear - 1],
+      queryFn: () => fetchDailyTotals(nextMonth, currentYear - 1),
+      staleTime: 5 * 60 * 1000,
+    });
+
+    // Next year's months
+    queryClient.prefetchQuery({
+      queryKey: ["dailyTotals", currentMonth, currentYear + 1],
+      queryFn: () => fetchDailyTotals(currentMonth, currentYear + 1),
+      staleTime: 5 * 60 * 1000,
+    });
+    queryClient.prefetchQuery({
+      queryKey: ["dailyTotals", nextMonth, currentYear + 1],
+      queryFn: () => fetchDailyTotals(nextMonth, currentYear + 1),
+      staleTime: 5 * 60 * 1000,
+    });
+
+    // Adjacent months in current year (original prefetching)
     queryClient.prefetchQuery({
       queryKey: ["dailyTotals", prevMonth, prevYear],
       queryFn: () => fetchDailyTotals(prevMonth, prevYear),
       staleTime: 5 * 60 * 1000,
     });
-
-    // Prefetch future month
     queryClient.prefetchQuery({
       queryKey: ["dailyTotals", futureMonth, futureYear],
       queryFn: () => fetchDailyTotals(futureMonth, futureYear),
@@ -143,6 +169,7 @@ function useDailyTotals(currentDate: Date) {
     queryClient,
     prevMonth,
     prevYear,
+    nextMonth,
     futureMonth,
     futureYear,
   ]);
@@ -164,7 +191,19 @@ export function DatePickerWithRange({
   onDateChange,
 }: DatePickerWithRangeProps) {
   const [month, setMonth] = React.useState<Date>(date?.from || new Date());
+  const [open, setOpen] = React.useState(false);
   const { dailyTotals, isLoading, isError, error } = useDailyTotals(month);
+
+  // Add year navigation functions
+  const handlePreviousYear = () => {
+    setMonth(subYears(month, 1));
+  };
+
+  const handleNextYear = () => {
+    setMonth(
+      addDays(subDays(addDays(startOfYear(addDays(month, 365)), 1), 1), 1)
+    );
+  };
 
   // If there's an error, log it but don't interrupt the UI
   React.useEffect(() => {
@@ -188,13 +227,13 @@ export function DatePickerWithRange({
 
   return (
     <div className={cn("grid gap-2", className)}>
-      <Popover>
+      <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             id="date"
             variant={"outline"}
             className={cn(
-              "w-[300px] justify-start text-left font-normal",
+              "w-[300px] justify-start text-left font-semibold",
               !date && "text-muted-foreground"
             )}
           >
@@ -216,7 +255,7 @@ export function DatePickerWithRange({
         <PopoverContent className="w-auto p-0" align="start">
           <div className="flex flex-col md:flex-row">
             {/* Mobile Select */}
-            <div className="block md:hidden p-3 border-b border-border">
+            <div className="block md:hidden p-2 border-b border-border font-semibold">
               <Select
                 onValueChange={(value) => {
                   const preset = PRESET_OPTIONS.find(
@@ -232,7 +271,11 @@ export function DatePickerWithRange({
                 </SelectTrigger>
                 <SelectContent>
                   {PRESET_OPTIONS.map((preset) => (
-                    <SelectItem key={preset.label} value={preset.label}>
+                    <SelectItem
+                      key={preset.label}
+                      value={preset.label}
+                      className="font-semibold"
+                    >
                       {preset.label}
                     </SelectItem>
                   ))}
@@ -241,12 +284,12 @@ export function DatePickerWithRange({
             </div>
 
             {/* Desktop Buttons */}
-            <div className="hidden md:flex md:flex-col gap-1 p-3 border-r border-border">
+            <div className="hidden md:flex md:flex-col gap-1 p-2 border-r border-border">
               {PRESET_OPTIONS.map((preset) => (
                 <Button
                   key={preset.label}
                   variant="ghost"
-                  className="justify-start font-normal"
+                  className="justify-start font-semibold"
                   onClick={() => handlePresetClick(preset)}
                 >
                   {preset.label}
@@ -254,17 +297,52 @@ export function DatePickerWithRange({
               ))}
             </div>
 
-            <Calendar
-              initialFocus
-              mode="range"
-              month={month}
-              onMonthChange={setMonth}
-              selected={date}
-              onSelect={handleSelect}
-              numberOfMonths={2}
-              dailyTotals={dailyTotals}
-              className={cn(isLoading && "opacity-70", "w-full md:w-auto")}
-            />
+            <div className="flex flex-col">
+              {/* Year Navigation - Updated to match calendar.tsx styling */}
+              <div className="flex justify-between px-4 py-2 border-b">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreviousYear}
+                  className="h-6 w-6 md:h-7 md:w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+                >
+                  <ChevronLeftIcon className="h-3 w-3 md:h-4 md:w-4" />
+                </Button>
+                <span className="py-1 text-sm font-semibold">
+                  {format(month, "yyyy")}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextYear}
+                  className="h-6 w-6 md:h-7 md:w-7 bg-transparent p-0 opacity-50 hover:opacity-100"
+                >
+                  <ChevronRightIcon className="h-3 w-3 md:h-4 md:w-4" />
+                </Button>
+              </div>
+
+              <Calendar
+                initialFocus
+                mode="range"
+                month={month}
+                onMonthChange={setMonth}
+                selected={date}
+                onSelect={handleSelect}
+                numberOfMonths={2}
+                dailyTotals={dailyTotals}
+                className={cn(isLoading && "opacity-70", "w-full md:w-auto")}
+              />
+            </div>
+          </div>
+          {/* Add close button */}
+          <div className="border-t border-border">
+            <Button
+              variant="ghost"
+              className="w-full font-semibold"
+              onClick={() => setOpen(false)}
+            >
+              Close
+            </Button>
           </div>
         </PopoverContent>
       </Popover>

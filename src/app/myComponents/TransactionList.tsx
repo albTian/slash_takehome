@@ -19,12 +19,15 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useCallback } from "react";
 import { endOfDay } from "date-fns";
 import { startOfDay } from "date-fns";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Combobox } from "@/components/ui/combobox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AmountRangePicker } from "./AmountRangePicker";
 
 interface Transaction {
   id: string;
@@ -44,10 +47,12 @@ const fetchTransactions = async ({
   page,
   dateRange,
   selectedMerchant,
+  amountRange,
 }: {
   page: number;
   dateRange: DateRange | undefined;
   selectedMerchant: string;
+  amountRange: { min?: number; max?: number };
 }) => {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -62,6 +67,12 @@ const fetchTransactions = async ({
   if (selectedMerchant !== "all") {
     params.append("merchant", selectedMerchant);
   }
+  if (amountRange.min) {
+    params.append("minAmount", (amountRange.min * 100).toString());
+  }
+  if (amountRange.max) {
+    params.append("maxAmount", (amountRange.max * 100).toString());
+  }
 
   const response = await fetch(`/transaction?${params}`);
   if (!response.ok) {
@@ -74,7 +85,8 @@ const fetchTransactions = async ({
 function useTransactions(
   page: number,
   dateRange: DateRange | undefined,
-  selectedMerchant: string
+  selectedMerchant: string,
+  amountRange: { min?: number; max?: number }
 ) {
   return useQuery<{
     transactions: Transaction[];
@@ -90,8 +102,11 @@ function useTransactions(
       dateRange?.from,
       dateRange?.to,
       selectedMerchant,
+      amountRange.min,
+      amountRange.max,
     ],
-    queryFn: () => fetchTransactions({ page, dateRange, selectedMerchant }),
+    queryFn: () =>
+      fetchTransactions({ page, dateRange, selectedMerchant, amountRange }),
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
     retry: 2,
@@ -277,11 +292,16 @@ export default function TransactionPage() {
   const [page, setPage] = useState(1);
   const lastTotalPages = useRef(1);
   const [selectedMerchant, setSelectedMerchant] = useState<string>("");
+  const [inputAmountRange, setInputAmountRange] = useState<{
+    min?: number;
+    max?: number;
+  }>({});
 
   const { data, isLoading, isError, error } = useTransactions(
     page,
     dateRange,
-    selectedMerchant
+    selectedMerchant,
+    inputAmountRange
   );
 
   // Create merchant options using allMerchants from API
@@ -303,7 +323,7 @@ export default function TransactionPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [dateRange, selectedMerchant]);
+  }, [dateRange, selectedMerchant, inputAmountRange]);
 
   return (
     <div className="space-y-4 h-[calc(100vh-200px)] flex flex-col">
@@ -318,6 +338,10 @@ export default function TransactionPage() {
           options={merchantOptions}
           value={selectedMerchant}
           setValue={setSelectedMerchant}
+        />
+        <AmountRangePicker
+          value={inputAmountRange}
+          onChange={setInputAmountRange}
         />
       </div>
       <TransactionTable

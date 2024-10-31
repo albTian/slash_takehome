@@ -39,7 +39,7 @@ export function Combobox({ options, value, setValue }: ComboboxProps) {
         >
           {value
             ? options.find((option) => option.value === value)?.label
-            : "Select..."}
+            : "Filter by merchant"}
           <CaretSortIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

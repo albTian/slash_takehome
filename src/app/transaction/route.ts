@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1");
   const fromDate = searchParams.get("from");
   const toDate = searchParams.get("to");
+  const minAmount = searchParams.get("minAmount");
+  const maxAmount = searchParams.get("maxAmount");
   let selectedMerchant = searchParams.get("merchant") || null;
   if (selectedMerchant === "all") {
     selectedMerchant = null;
@@ -27,6 +29,8 @@ export async function GET(request: NextRequest) {
         WHERE (${fromDate}::timestamp IS NULL OR date >= ${fromDate}::timestamp)
         AND (${toDate}::timestamp IS NULL OR date <= ${toDate}::timestamp)
         AND (${selectedMerchant}::text IS NULL OR "merchantName" = ${selectedMerchant}::text)
+        AND (${minAmount}::integer IS NULL OR "amountCents" >= ${minAmount}::integer)
+        AND (${maxAmount}::integer IS NULL OR "amountCents" <= ${maxAmount}::integer)
         ORDER BY date DESC
         LIMIT ${limit}
         OFFSET ${offset}
@@ -36,6 +40,8 @@ export async function GET(request: NextRequest) {
         WHERE (${fromDate}::timestamp IS NULL OR date >= ${fromDate}::timestamp)
         AND (${toDate}::timestamp IS NULL OR date <= ${toDate}::timestamp)
         AND (${selectedMerchant}::text IS NULL OR "merchantName" = ${selectedMerchant}::text)
+        AND (${minAmount}::integer IS NULL OR "amountCents" >= ${minAmount}::integer)
+        AND (${maxAmount}::integer IS NULL OR "amountCents" <= ${maxAmount}::integer)
       `,
       sql`
         SELECT DISTINCT "merchantName"

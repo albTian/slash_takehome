@@ -35,11 +35,12 @@ export async function GET(request: NextRequest) {
 
     const totalsMap = Object.fromEntries(
       dailyTotals.map((day) => [
-        day.day.toISOString().split('T')[0],
+        day.day.toISOString().split("T")[0],
         {
-          totalAmount: day.total_amount,
-          transactionCount: day.transaction_count,
-        }
+          // total amount in cents
+          totalAmount: Number(day.total_amount),
+          transactionCount: Number(day.transaction_count),
+        },
       ])
     );
 

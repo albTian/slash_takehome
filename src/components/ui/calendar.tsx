@@ -18,6 +18,41 @@ export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
   dailyTotals?: DailyTotalsMap;
 };
 
+const formatCurrency = (amount: number) => {
+  const dollars = amount / 100;
+  if (dollars >= 1000000) {
+    return `$${(dollars / 1000000).toFixed(1)}m`;
+  }
+  if (dollars >= 1000) {
+    return `$${(dollars / 1000).toFixed(1)}k`;
+  }
+  return `$${dollars.toFixed(2)}`;
+};
+
+const getMinMaxAmounts = (dailyTotals: DailyTotalsMap) => {
+  const amounts = Object.values(dailyTotals)
+    .map((day) => day.totalAmount)
+    .filter((amount) => amount > 0);
+
+  if (amounts.length === 0) return { min: 0, max: 0 };
+
+  return {
+    min: Math.min(...amounts),
+    max: Math.max(...amounts),
+  };
+};
+
+const getAmountColorClass = (amount: number, min: number, max: number) => {
+  if (min === max) return "text-green-500";
+
+  const range = max - min;
+  const normalizedValue = range === 0 ? 0 : (amount - min) / range;
+
+  if (normalizedValue >= 0.66) return "text-red-500";
+  if (normalizedValue >= 0.33) return "text-yellow-500";
+  return "text-green-500";
+};
+
 function Calendar({
   className,
   classNames,
@@ -25,19 +60,33 @@ function Calendar({
   dailyTotals = {},
   ...props
 }: CalendarProps) {
+  // Calculate min and max once
+  const { min, max } = React.useMemo(
+    () => getMinMaxAmounts(dailyTotals),
+    [dailyTotals]
+  );
+
   // Custom DayContent component
   function CustomDayContent(props: DayContentProps) {
     const { date, activeModifiers } = props;
     const dateKey = date.toISOString().split("T")[0];
-
-    // Direct lookup instead of array search
-    const hasTransactions = Boolean(dailyTotals[dateKey]);
+    const dayData = dailyTotals[dateKey];
 
     return (
-      <div className="relative w-full h-full flex items-center justify-center">
-        <div>{date.getDate()}</div>
-        {hasTransactions && (
-          <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />
+      <div className="relative w-full h-full flex flex-col items-center justify-center gap-1">
+        <div className="font-semibold">{date.getDate()}</div>
+        {dayData && dayData.totalAmount && (
+          <>
+            <div
+              className={`text-xs  ${getAmountColorClass(
+                dayData.totalAmount,
+                min,
+                max
+              )}`}
+            >
+              {formatCurrency(dayData.totalAmount)}
+            </div>
+          </>
         )}
       </div>
     );
@@ -59,8 +108,8 @@ function Calendar({
         ),
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-y-1",
-        head_row: "flex",
+        table: "w-full border-collapse space-y-1 ",
+        head_row: "flex justify-between px-4 border-b",
         head_cell:
           "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]",
         row: "flex w-full mt-2",
@@ -72,7 +121,7 @@ function Calendar({
         ),
         day: cn(
           buttonVariants({ variant: "ghost" }),
-          "h-8 w-8 p-0 font-normal aria-selected:opacity-100"
+          "h-14 w-14 p-0 font-normal aria-selected:opacity-100"
         ),
         day_range_start: "day-range-start",
         day_range_end: "day-range-end",

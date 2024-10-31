@@ -3,7 +3,19 @@
 
 import * as React from "react";
 import { CalendarIcon } from "@radix-ui/react-icons";
-import { addDays, format } from "date-fns";
+import {
+  addDays,
+  endOfDay,
+  startOfMonth,
+  startOfDay,
+  format,
+  subDays,
+  endOfMonth,
+  subMonths,
+  subYears,
+  startOfYear,
+  endOfYear,
+} from "date-fns";
 import { DateRange } from "react-day-picker";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -21,43 +33,43 @@ const PRESET_OPTIONS = [
   {
     label: "Today",
     dates: {
-      from: new Date(new Date().setHours(0, 0, 0, 0)),
-      to: new Date(new Date().setHours(23, 59, 59, 999)),
+      from: startOfDay(new Date()),
+      to: endOfDay(new Date()),
     },
   },
   {
     label: "Yesterday",
     dates: {
-      from: new Date(new Date().setHours(0, 0, 0, 0) - 24 * 60 * 60 * 1000),
-      to: new Date(new Date().setHours(23, 59, 59, 999) - 24 * 60 * 60 * 1000),
+      from: startOfDay(subDays(new Date(), 1)),
+      to: endOfDay(subDays(new Date(), 1)),
     },
   },
   {
     label: "This Month",
     dates: {
-      from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-      to: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
+      from: startOfMonth(new Date()),
+      to: endOfMonth(new Date()),
     },
   },
   {
     label: "Last Month",
     dates: {
-      from: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
-      to: new Date(new Date().getFullYear(), new Date().getMonth(), 0),
+      from: startOfMonth(subMonths(new Date(), 1)),
+      to: endOfMonth(subMonths(new Date(), 1)),
     },
   },
   {
     label: "This Year",
     dates: {
-      from: new Date(new Date().getFullYear(), 0, 1),
-      to: new Date(new Date().getFullYear() + 1, 0, 0),
+      from: startOfYear(new Date()),
+      to: endOfYear(new Date()),
     },
   },
   {
     label: "Last Year",
     dates: {
-      from: new Date(new Date().getFullYear() - 1, 0, 1),
-      to: new Date(new Date().getFullYear(), 0, 0),
+      from: startOfYear(subYears(new Date(), 1)),
+      to: endOfYear(subYears(new Date(), 1)),
     },
   },
 ];

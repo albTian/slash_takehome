@@ -303,7 +303,7 @@ export default function TransactionPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [dateRange]);
+  }, [dateRange, selectedMerchant]);
 
   return (
     <div className="space-y-4 h-[calc(100vh-200px)] flex flex-col">

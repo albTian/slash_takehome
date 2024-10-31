@@ -11,15 +11,22 @@ export async function GET(request: NextRequest) {
   const page = parseInt(searchParams.get("page") || "1");
   const fromDate = searchParams.get("from");
   const toDate = searchParams.get("to");
+  let selectedMerchant = searchParams.get("merchant") || null;
+  if (selectedMerchant === "all") {
+    selectedMerchant = null;
+  }
+
+  console.log("selectedMerchant", selectedMerchant);
   const limit = 50;
   const offset = (page - 1) * limit;
 
   try {
-    const [transactions, totalCount] = await Promise.all([
+    const [transactions, totalCount, allMerchants] = await Promise.all([
       sql`
         SELECT * FROM transaction
         WHERE (${fromDate}::timestamp IS NULL OR date >= ${fromDate}::timestamp)
         AND (${toDate}::timestamp IS NULL OR date <= ${toDate}::timestamp)
+        AND (${selectedMerchant}::text IS NULL OR "merchantName" = ${selectedMerchant}::text)
         ORDER BY date DESC
         LIMIT ${limit}
         OFFSET ${offset}
@@ -28,6 +35,14 @@ export async function GET(request: NextRequest) {
         SELECT COUNT(*) FROM transaction
         WHERE (${fromDate}::timestamp IS NULL OR date >= ${fromDate}::timestamp)
         AND (${toDate}::timestamp IS NULL OR date <= ${toDate}::timestamp)
+        AND (${selectedMerchant}::text IS NULL OR "merchantName" = ${selectedMerchant}::text)
+      `,
+      sql`
+        SELECT DISTINCT "merchantName"
+        FROM transaction
+        WHERE (${fromDate}::timestamp IS NULL OR date >= ${fromDate}::timestamp)
+        AND (${toDate}::timestamp IS NULL OR date <= ${toDate}::timestamp)
+        ORDER BY "merchantName"
       `,
     ]);
 
@@ -36,6 +51,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       transactions,
+      allMerchants: allMerchants.map((m) => m.merchantName),
       pagination: {
         currentPage: page,
         totalPages,

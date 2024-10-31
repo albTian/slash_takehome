@@ -21,8 +21,8 @@ const PRESET_OPTIONS = [
   {
     label: "Today",
     dates: {
-      from: new Date(),
-      to: new Date(),
+      from: new Date(new Date().setHours(0, 0, 0, 0)),
+      to: new Date(new Date().setHours(23, 59, 59, 999)),
     },
   },
   {
@@ -36,7 +36,7 @@ const PRESET_OPTIONS = [
     label: "This Month",
     dates: {
       from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-      to: new Date(),
+      to: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0),
     },
   },
   {
@@ -50,14 +50,14 @@ const PRESET_OPTIONS = [
     label: "This Year",
     dates: {
       from: new Date(new Date().getFullYear(), 0, 1),
-      to: new Date(),
+      to: new Date(new Date().getFullYear() + 1, 0, 0),
     },
   },
   {
     label: "Last Year",
     dates: {
       from: new Date(new Date().getFullYear() - 1, 0, 1),
-      to: new Date(new Date().getFullYear() - 1, 11, 31),
+      to: new Date(new Date().getFullYear(), 0, 0),
     },
   },
 ];

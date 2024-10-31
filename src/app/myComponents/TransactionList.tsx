@@ -19,11 +19,12 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { endOfDay } from "date-fns";
 import { startOfDay } from "date-fns";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Combobox } from "@/components/ui/combobox";
 
 interface Transaction {
   id: string;
@@ -42,9 +43,11 @@ function capitalizeFirstLetter(string: string) {
 const fetchTransactions = async ({
   page,
   dateRange,
+  selectedMerchant,
 }: {
   page: number;
   dateRange: DateRange | undefined;
+  selectedMerchant: string;
 }) => {
   const params = new URLSearchParams({
     page: page.toString(),
@@ -56,6 +59,9 @@ const fetchTransactions = async ({
   if (dateRange?.to) {
     params.append("to", dateRange.to.toISOString());
   }
+  if (selectedMerchant !== "all") {
+    params.append("merchant", selectedMerchant);
+  }
 
   const response = await fetch(`/transaction?${params}`);
   if (!response.ok) {
@@ -65,12 +71,30 @@ const fetchTransactions = async ({
 };
 
 // Custom hook for transactions
-function useTransactions(page: number, dateRange: DateRange | undefined) {
-  return useQuery({
-    queryKey: ["transactions", page, dateRange?.from, dateRange?.to],
-    queryFn: () => fetchTransactions({ page, dateRange }),
-    // keepPreviousData: true, // Keep old data while fetching new data
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+function useTransactions(
+  page: number,
+  dateRange: DateRange | undefined,
+  selectedMerchant: string
+) {
+  return useQuery<{
+    transactions: Transaction[];
+    allMerchants: string[];
+    pagination: {
+      totalPages: number;
+      hasNextPage: boolean;
+    };
+  }>({
+    queryKey: [
+      "transactions",
+      page,
+      dateRange?.from,
+      dateRange?.to,
+      selectedMerchant,
+    ],
+    queryFn: () => fetchTransactions({ page, dateRange, selectedMerchant }),
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    retry: 2,
   });
 }
 
@@ -100,46 +124,39 @@ function TransactionRowSkeleton() {
   );
 }
 
-export default function TransactionList() {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: startOfDay(new Date()),
-    to: endOfDay(new Date()),
-  });
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+interface TransactionTableProps {
+  data:
+    | {
+        transactions: Transaction[];
+        allMerchants: string[];
+        pagination: {
+          totalPages: number;
+          hasNextPage: boolean;
+        };
+      }
+    | undefined;
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+  page: number;
+  setPage: (page: number) => void;
+  totalPages: number;
+  selectedMerchant: string;
+}
 
-  // Use the custom hook
-  const { data, isLoading, isError, error } = useTransactions(page, dateRange);
-
-  // Update totalPages when data changes
-  useEffect(() => {
-    if (data?.pagination.totalPages) {
-      setTotalPages(data.pagination.totalPages);
-    }
-  }, [data?.pagination.totalPages]);
-
-  // Reset to first page when date range changes
-  useEffect(() => {
-    setPage(1);
-  }, [dateRange]);
-
-  if (isError) {
-    return (
-      <div className="text-red-500 p-4">
-        Error: {error instanceof Error ? error.message : "An error occurred"}
-      </div>
-    );
-  }
-
+// Handles displaying the transactions in a table based on the date range. This will handle the fetching using the custom hook.
+const TransactionTable = ({
+  data,
+  isLoading,
+  isError,
+  error,
+  page,
+  setPage,
+  totalPages,
+  selectedMerchant,
+}: TransactionTableProps) => {
   return (
-    <div className="space-y-4 h-[calc(100vh-200px)] flex flex-col">
-      <DatePickerWithRange
-        date={dateRange}
-        onDateChange={(newDateRange) => {
-          setDateRange(newDateRange);
-        }}
-      />
-
+    <>
       <div className="relative flex-1 flex flex-col">
         <div className="flex flex-col">
           <div className="border">
@@ -159,14 +176,14 @@ export default function TransactionList() {
                       <TransactionRowSkeleton key={index} />
                     ))}
                   </>
-                ) : data?.transactions.length === 0 ? (
+                ) : data?.transactions?.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={4} className="text-center">
                       No transactions found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  data?.transactions.map(
+                  data?.transactions?.map(
                     (transaction: Transaction, index: number) => (
                       <TableRow
                         key={
@@ -222,10 +239,10 @@ export default function TransactionList() {
           <Pagination className="mt-auto">
             <PaginationContent>
               <PaginationPrevious
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPage(Math.max(1, page - 1))}
                 aria-disabled={page === 1}
                 className={cn(page === 1 && "cursor-not-allowed opacity-50")}
-                href={"#"}
+                href="#"
               />
 
               <PaginationItem>
@@ -235,18 +252,84 @@ export default function TransactionList() {
               </PaginationItem>
 
               <PaginationNext
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
                 aria-disabled={!data?.pagination.hasNextPage}
                 className={cn(
                   !data?.pagination.hasNextPage &&
                     "cursor-not-allowed opacity-50"
                 )}
-                href={"#"}
+                href="#"
               />
             </PaginationContent>
           </Pagination>
         </div>
       </div>
+    </>
+  );
+};
+
+export default function TransactionPage() {
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: startOfDay(new Date()),
+    to: endOfDay(new Date()),
+  });
+
+  const [page, setPage] = useState(1);
+  const lastTotalPages = useRef(1);
+  const [selectedMerchant, setSelectedMerchant] = useState<string>("");
+
+  const { data, isLoading, isError, error } = useTransactions(
+    page,
+    dateRange,
+    selectedMerchant
+  );
+
+  // Create merchant options using allMerchants from API
+  const merchantOptions = useMemo(
+    () => [
+      { value: "all", label: "All Merchants" },
+      ...(data?.allMerchants || []).map((merchant) => ({
+        value: merchant,
+        label: merchant,
+      })),
+    ],
+    [data?.allMerchants]
+  );
+
+  // Update lastTotalPages only when we get a valid value
+  if (data?.pagination.totalPages) {
+    lastTotalPages.current = data.pagination.totalPages;
+  }
+
+  useEffect(() => {
+    setPage(1);
+  }, [dateRange]);
+
+  return (
+    <div className="space-y-4 h-[calc(100vh-200px)] flex flex-col">
+      <div className="flex gap-4">
+        <DatePickerWithRange
+          date={dateRange}
+          onDateChange={(newDateRange) => {
+            setDateRange(newDateRange);
+          }}
+        />
+        <Combobox
+          options={merchantOptions}
+          value={selectedMerchant}
+          setValue={setSelectedMerchant}
+        />
+      </div>
+      <TransactionTable
+        data={data}
+        isLoading={isLoading}
+        isError={isError}
+        error={error}
+        page={page}
+        setPage={setPage}
+        totalPages={lastTotalPages.current}
+        selectedMerchant={selectedMerchant}
+      />
     </div>
   );
 }
